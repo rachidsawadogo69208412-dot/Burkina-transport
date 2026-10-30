@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Burkina Transport V7 - Billet électronique</title>
+<style>
+*{box-sizing:border-box}body{font-family:system-ui,Arial;background:#f0f2f5;margin:0;color:#222}
+.header{background:#d32f2f;color:white;padding:14px;text-align:center;position:sticky;top:0;z-index:10;cursor:pointer}
+.card{background:white;margin:12px;border-radius:14px;padding:14px;box-shadow:0 2px 10px rgba(0,0,0,.08)}
+label{font-weight:600;font-size:13px;margin-top:10px;display:block;color:#333}
+select,input{width:100%;padding:13px;margin:6px 0;border-radius:10px;border:1.5px solid #ddd;font-size:15px;background:#fafafa}
+.row{display:flex;gap:10px}.row>div{flex:1;min-width:0}
+.total-box{background:#000;color:#fff;padding:14px;border-radius:12px;text-align:center;margin-top:12px}
+.total-box b{font-size:22px;color:#ffeb3b}.btn{width:100%;padding:14px;border:0;border-radius:10px;font-size:16px;font-weight:bold;cursor:pointer;margin-top:9px}
+.btn-pay{background:#ff6f00;color:white}.btn-pay:disabled{background:#ccc}.btn-green{background:#087f23;color:white}.btn-dark{background:#222;color:white}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.65);display:none;align-items:flex-end;justify-content:center;z-index:99}.modal.open{display:flex}
+.modal-content{background:white;width:100%;max-width:500px;max-height:92vh;overflow:auto;border-radius:20px 20px 0 0;padding:18px}
+.pay-opt{display:flex;align-items:center;gap:12px;padding:12px;border:1.5px solid #eee;border-radius:12px;margin:8px 0}.pay-opt button{background:#000;color:white;border:0;padding:10px 12px;border-radius:8px}
+.admin{background:#111;color:#0f0;padding:12px;border-radius:12px;margin:12px;font-size:12px;max-height:85vh;overflow-y:auto}
+.company{background:#222;padding:10px;border-radius:8px;margin-top:10px}.admin label{color:#ddd}.admin input{padding:10px;font-size:14px}
+.note{font-size:12px;color:#555;line-height:1.5}.ticket{border:2px dashed #555;border-radius:14px;padding:16px;margin-top:12px;background:#fff}
+.ticket-code{font-size:22px;font-weight:800;letter-spacing:2px;text-align:center;background:#f2f2f2;padding:12px;border-radius:8px;overflow-wrap:anywhere}
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+<div class="header" onclick="adminToggle()">
+<h2 style="margin:0">🚌 BURKINA TRANSPORT</h2>
+<p style="margin:2px 0 0;font-size:12px;opacity:.9">Réservation • Paiement • Billet électronique</p>
+</div>
+
+<div id="adminPanel" class="admin hidden">
+<b>🔐 ADMIN — CONFIGURATION DES PAIEMENTS</b>
+<p style="color:#bbb;font-size:11px">Les paiements doivent être vérifiés dans le compte de la compagnie avant de délivrer un billet. Les valeurs ci-dessous sont des exemples : remplace-les par les coordonnées officiellement confirmées.</p>
+<div class="company" style="border-left:3px solid #ff6f00"><b>🟦 STAF</b>
+<label>Code marchand Orange Money STAF</label><input id="orange_STAF" value="">
+<label>Numéro / compte Moov Money STAF</label><input id="moov_STAF" value="">
+<label>Lien de paiement Wave STAF (HTTPS)</label><input id="wave_STAF" value="">
+</div>
+<div class="company" style="border-left:3px solid #00e676"><b>🟩 TSR</b>
+<label>Code marchand Orange Money TSR</label><input id="orange_TSR" value="">
+<label>Numéro / compte Moov Money TSR</label><input id="moov_TSR" value="">
+<label>Lien de paiement Wave TSR (HTTPS)</label><input id="wave_TSR" value="">
+</div>
+<div class="company" style="border-left:3px solid #ffeb3b"><b>🟧 RAKIETA</b>
+<label>Code marchand Orange Money RAKIETA</label><input id="orange_RAKIETA" value="">
+<label>Numéro / compte Moov Money RAKIETA</label><input id="moov_RAKIETA" value="">
+<label>Lien de paiement Wave RAKIETA (HTTPS)</label><input id="wave_RAKIETA" value="">
+</div>
+<button class="btn btn-green" onclick="savePayments()">💾 SAUVEGARDER LES COORDONNÉES</button>
+<hr style="border-color:#444">
+<b>📋 Réservations en attente</b><div id="pendingList" style="color:white"></div>
+<button class="btn btn-dark" onclick="renderPending()">Actualiser la liste</button>
+<button class="btn" onclick="closeAdmin()" style="background:#555;color:white">Fermer l’administration</button>
+</div>
+
+<div class="card">
+<label>🚌 Compagnie</label>
+<select id="compagnie" onchange="calc()"><option value="STAF">STAF</option><option value="TSR">TSR</option><option value="RAKIETA">RAKIETA</option></select>
+<label>📍 Départ</label>
+<select id="depart" onchange="calc()"><option value="">Choisis le départ</option><option>Ouagadougou</option><option>Bobo-Dioulasso</option><option>Banfora</option><option>Kaya</option><option>Bamako</option><option>Abidjan</option><option>Lomé</option><option>Gaoua</option><option>Dédougou</option><option>Dori</option></select>
+<label>🏁 Arrivée</label>
+<select id="arrivee" onchange="calc()"><option value="">Choisis l’arrivée</option><option>Bobo-Dioulasso</option><option>Ouagadougou</option><option>Banfora</option><option>Abidjan</option><option>Bamako</option><option>Lomé</option><option>Gaoua</option><option>Dédougou</option><option>Kaya</option><option>Dori</option></select>
+<div class="row"><div><label>📅 Date du voyage</label><input id="dateVoyage" type="date"></div><div><label>💺 Nombre de places</label><select id="places" onchange="calc()"><option value="1">1 place</option><option value="2">2 places</option><option value="3">3 places</option><option value="4">4 places</option><option value="5">5 places</option><option value="6">6 places</option></select></div></div>
+<label>Nom du passager</label><input id="passager" autocomplete="name" placeholder="Nom et prénom">
+<label>Téléphone du passager</label><input id="telephone" inputmode="tel" placeholder="Numéro de téléphone">
+<div class="total-box hidden" id="totalBox"><div>Prix unitaire : <span id="pu">0</span> FCFA × <span id="qt">1</span></div><div>Total : <b id="total">0 FCFA</b></div><div style="font-size:11px;margin-top:4px" id="detailTrajet"></div></div>
+<button id="btnContinuer" class="btn btn-pay" disabled onclick="openPay()">Continuer → Choisir le paiement</button>
+<p class="note">Les tarifs affichés sont indicatifs et doivent être confirmés par la compagnie. Le billet n’est valide qu’après vérification effective du paiement par le responsable.</p>
+</div>
+
+<div class="modal" id="payModal"><div class="modal-content">
+<div style="display:flex;justify-content:space-between;gap:10px"><h3 style="margin:0">💳 Paiement <span id="payComp"></span></h3><span onclick="closePay()" style="font-size:22px;cursor:pointer">✕</span></div>
+<p>Trajet : <b id="resumeTrajet"></b><br>Total : <b id="resumeTotal" style="color:#d32f2f"></b><br><small id="resumePayTo"></small></p>
+<div class="pay-opt"><span style="font-size:26px">🟠</span><div style="flex:1"><b>Orange Money</b><br><small id="labelOrange"></small></div><button onclick="payer('orange')">Instructions</button></div>
+<div class="pay-opt"><span style="font-size:26px">🔵</span><div style="flex:1"><b>Moov Money</b><br><small id="labelMoov"></small></div><button onclick="payer('moov')">Instructions</button></div>
+<div class="pay-opt"><span style="font-size:26px">🌊</span><div style="flex:1"><b>Wave</b><br><small id="labelWave"></small></div><button onclick="payer('wave')">Ouvrir</button></div>
+<p class="note">Ne communique jamais ton code secret, ton PIN ou un code OTP. Vérifie le nom du bénéficiaire et le montant dans le menu officiel avant de confirmer.</p>
+<button class="btn btn-green" onclick="submitBooking()">J’ai effectué le paiement — envoyer pour vérification</button>
+</div></div>
+
+<div class="modal" id="ticketModal"><div class="modal-content">
+<div style="display:flex;justify-content:space-between"><h3 style="margin:0">🎟️ Billet électronique</h3><span onclick="closeTicket()" style="font-size:22px;cursor:pointer">✕</span></div>
+<div id="ticketArea" class="ticket"></div>
+<button class="btn btn-green" onclick="copyTicket()">📋 Copier le code du billet</button>
+<button class="btn btn-dark" onclick="window.print()">🖨️ Imprimer / Enregistrer en PDF</button>
+<p class="note">Présente le code à la compagnie. Si le paiement n’a pas été vérifié, le billet n’est pas validé.</p>
+</div></div>
+
+<script>
+const prix={"Ouagadougou-Bobo-Dioulasso":7500,"Bobo-Dioulasso-Ouagadougou":7500,"Ouagadougou-Banfora":9000,"Banfora-Ouagadougou":9000,"Bobo-Dioulasso-Banfora":2500,"Banfora-Bobo-Dioulasso":2500,"Ouagadougou-Abidjan":18000,"Abidjan-Ouagadougou":18000,"Bobo-Dioulasso-Abidjan":15000,"Ouagadougou-Bamako":20000,"Bamako-Ouagadougou":20000,"Bobo-Dioulasso-Bamako":12000,"Ouagadougou-Lomé":18000,"Lomé-Ouagadougou":18000,"Ouagadougou-Gaoua":8500,"Gaoua-Ouagadougou":8500,"Ouagadougou-Dédougou":5000,"Dédougou-Ouagadougou":5000,"Ouagadougou-Kaya":3500,"Kaya-Ouagadougou":3500,"Ouagadougou-Dori":7000,"Dori-Ouagadougou":7000};
+const KEY="bt_v7_company_payments", BOOKKEY="bt_v7_bookings";
+let payments={STAF:{orange:"",moov:"",wave:""},TSR:{orange:"",moov:"",wave:""},RAKIETA:{orange:"",moov:"",wave:""}};
+let currentBooking=null, clicks=0;
+const $=id=>document.getElementById(id);
+function safeRead(key,fallback){try{const v=localStorage.getItem(key);return v?JSON.parse(v):fallback}catch(e){return fallback}}
+function loadPayments(){payments={...payments,...safeRead(KEY,{})};["STAF","TSR","RAKIETA"].forEach(c=>{payments[c]=payments[c]||{orange:"",moov:"",wave:""};["orange","moov","wave"].forEach(t=>$(t+"_"+c).value=payments[c][t]||"")})}
+function savePayments(){["STAF","TSR","RAKIETA"].forEach(c=>{payments[c]={orange:$("orange_"+c).value.trim(),moov:$("moov_"+c).value.trim(),wave:$("wave_"+c).value.trim()}});localStorage.setItem(KEY,JSON.stringify(payments));alert("Coordonnées enregistrées sur cet appareil. Vérifie qu’elles sont officielles.");closeAdmin()}
+function getPrix(d,a){return prix[d+"-"+a]||prix[a+"-"+d]||7500}
+function calc(){const d=$("depart").value,a=$("arrivee").value,q=+$("places").value;if(!d||!a||d===a){$("totalBox").classList.add("hidden");$("btnContinuer").disabled=true;return}const pu=getPrix(d,a),total=pu*q;$("pu").textContent=pu.toLocaleString("fr-FR");$("qt").textContent=q;$("total").textContent=total.toLocaleString("fr-FR")+" FCFA";$("detailTrajet").textContent=d+" → "+a+" ("+$("compagnie").value+") le "+$("dateVoyage").value;$("totalBox").classList.remove("hidden");$("btnContinuer").disabled=false}
+function openPay(){if(!$("passager").value.trim()||!$("telephone").value.trim()){alert("Renseigne le nom du passager et son téléphone.");return}if(!$("dateVoyage").value){alert("Choisis la date du voyage.");return}const d=$("depart").value,a=$("arrivee").value,comp=$("compagnie").value;currentBooking={id:"BT-"+Date.now().toString(36).toUpperCase(),passager:$("passager").value.trim(),telephone:$("telephone").value.trim(),depart:d,arrivee:a,date:$("dateVoyage").value,places:+$("places").value,compagnie:comp,total:getPrix(d,a)*+$("places").value,status:"En attente de vérification",created:new Date().toISOString()};const p=payments[comp];$("resumeTrajet").textContent=d+" → "+a+" • "+currentBooking.places+" place(s) • "+currentBooking.date+" • "+comp;$("resumeTotal").textContent=currentBooking.total.toLocaleString("fr-FR")+" FCFA";$("payComp").textContent=comp;$("resumePayTo").textContent="Bénéficiaire sélectionné : "+comp;$("labelOrange").textContent=p.orange?"Code marchand : "+p.orange:"Code marchand non configuré";$("labelMoov").textContent=p.moov||"Coordonnée non configurée";$("labelWave").textContent=p.wave||"Lien non configuré";$("payModal").classList.add("open")}
+function closePay(){$("payModal").classList.remove("open")}
+function payer(type){if(!currentBooking)return;const p=payments[currentBooking.compagnie];if(type==="orange"){if(!p.orange){alert("Le code marchand Orange Money de "+currentBooking.compagnie+" n’est pas configuré. Contacte la compagnie avant de payer.");return}alert("Orange Money — "+currentBooking.total.toLocaleString("fr-FR")+" FCFA\\nCompagnie : "+currentBooking.compagnie+"\\nCode marchand : "+p.orange+"\\n\\n1. Compose *144# et suis le menu officiel de paiement marchand / biens et services.\\n2. Entre le code marchand et le montant exact.\\n3. Vérifie le nom du bénéficiaire et le montant avant confirmation.\\n4. Garde le SMS de confirmation.\\n\\nNe partage jamais ton PIN ou un code de validation. Le billet sera délivré après vérification réelle du paiement.");try{location.href="tel:*144%23"}catch(e){}}
+else if(type==="moov"){if(!p.moov){alert("La coordonnée Moov Money de "+currentBooking.compagnie+" n’est pas configurée.");return}alert("Moov Money — "+currentBooking.total.toLocaleString("fr-FR")+" FCFA\\nCompagnie : "+currentBooking.compagnie+"\\nBénéficiaire : "+p.moov+"\\nUtilise uniquement le menu officiel et vérifie le nom et le montant. Ne partage jamais ton PIN. Le billet sera délivré après vérification.");}
+else{if(p.wave&&/^https:\\/\\/.+/i.test(p.wave)){window.open(p.wave,"_blank","noopener")}else alert("Lien Wave de "+currentBooking.compagnie+" non configuré ou invalide.")}}
+function getBookings(){return safeRead(BOOKKEY,[])}
+function saveBookings(list){localStorage.setItem(BOOKKEY,JSON.stringify(list))}
+function submitBooking(){if(!currentBooking)return;const list=getBookings();if(!list.some(b=>b.id===currentBooking.id)){list.push(currentBooking);saveBookings(list)}closePay();alert("Réservation enregistrée sur cet appareil en attente de vérification. Cette action ne confirme pas le paiement. Contacte le responsable avec la référence : "+currentBooking.id)}
+function adminToggle(){clicks++;if(clicks>=5){clicks=0;const pw=prompt("Mot de passe administrateur :");if(pw==="maman D6"){$("adminPanel").classList.remove("hidden");loadPayments();renderPending()}else if(pw!==null)alert("Mot de passe incorrect.")}setTimeout(()=>{clicks=0},2200)}
+function closeAdmin(){$("adminPanel").classList.add("hidden")}
+function renderPending(){const list=getBookings();const root=$("pendingList");if(!list.length){root.innerHTML="<p>Aucune réservation enregistrée sur cet appareil.</p>";return}root.innerHTML="";list.slice().reverse().forEach(b=>{const el=document.createElement("div");el.style.cssText="background:#222;padding:10px;border-radius:8px;margin:8px 0;color:white";const info=document.createElement("div");info.textContent=`${b.id} — ${b.passager} — ${b.compagnie} — ${b.depart} → ${b.arrivee} — ${b.total.toLocaleString("fr-FR")} FCFA — ${b.status}`;el.appendChild(info);if(!b.ticketCode){const btn=document.createElement("button");btn.className="btn btn-green";btn.textContent="Confirmer paiement reçu et créer le billet";btn.onclick=()=>confirmPayment(b.id);el.appendChild(btn)}else{const code=document.createElement("p");code.textContent="Code billet : "+b.ticketCode;el.appendChild(code)}root.appendChild(el)})}
+function confirmPayment(id){const list=getBookings(),b=list.find(x=>x.id===id);if(!b)return;if(!confirm("Confirme-tu avoir vérifié le paiement dans le compte réel de la compagnie ?"))return;b.status="Paiement vérifié par le responsable";b.ticketCode="BT-"+Math.random().toString(36).slice(2,6).toUpperCase()+"-"+Date.now().toString().slice(-6);b.verifiedAt=new Date().toISOString();saveBookings(list);renderPending();showTicket(b)}
+function showTicket(b){$("ticketArea").innerHTML="";const title=document.createElement("h3");title.textContent="BURKINA TRANSPORT — "+b.compagnie;const details=document.createElement("p");details.textContent=`Passager : ${b.passager}\\nTéléphone : ${b.telephone}\\nTrajet : ${b.depart} → ${b.arrivee}\\nDate : ${b.date}\\nPlaces : ${b.places}\\nMontant : ${b.total.toLocaleString("fr-FR")} FCFA\\nStatut : ${b.status}`;details.style.whiteSpace="pre-line";const code=document.createElement("div");code.className="ticket-code";code.textContent=b.ticketCode||"EN ATTENTE DE VALIDATION";$("ticketArea").append(title,details,code);$("ticketModal").classList.add("open")}
+function closeTicket(){$("ticketModal").classList.remove("open")}
+async function copyTicket(){const code=$("ticketArea").querySelector(".ticket-code")?.textContent||"";try{await navigator.clipboard.writeText(code);alert("Code copié : "+code)}catch(e){prompt("Copie ce code :",code)}}
+$("dateVoyage").valueAsDate=new Date();loadPayments();calc();
+</script>
+</body>
+</html>
