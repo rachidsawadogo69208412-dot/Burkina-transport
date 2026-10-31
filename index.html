@@ -1,1 +1,519 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Burkina Transport - Réservation Pro</title>
 
+<style>
+*{box-sizing:border-box}
+body{
+  font-family:system-ui,Arial;
+  background:#f0f2f5;
+  margin:0;
+  padding:0
+}
+.header{
+  background:#d32f2f;
+  color:white;
+  padding:14px;
+  text-align:center;
+  position:sticky;
+  top:0;
+  z-index:10;
+  cursor:pointer
+}
+.card{
+  background:white;
+  margin:12px;
+  border-radius:14px;
+  padding:14px;
+  box-shadow:0 2px 10px rgba(0,0,0,.08)
+}
+label{
+  font-weight:600;
+  font-size:13px;
+  margin-top:10px;
+  display:block;
+  color:#333
+}
+select,input{
+  width:100%;
+  padding:14px;
+  margin:6px 0;
+  border-radius:10px;
+  border:1.5px solid #ddd;
+  font-size:15px;
+  background:#fafafa
+}
+.row{display:flex;gap:10px}
+.row>div{flex:1}
+.total-box{
+  background:#000;
+  color:#fff;
+  padding:14px;
+  border-radius:12px;
+  text-align:center;
+  margin-top:12px
+}
+.total-box b{
+  font-size:22px;
+  color:#ffeb3b
+}
+.btn-pay{
+  width:100%;
+  padding:16px;
+  background:#ff6f00;
+  color:white;
+  border:none;
+  border-radius:12px;
+  font-size:17px;
+  font-weight:bold;
+  margin-top:10px
+}
+.btn-pay:disabled{background:#ccc}
+
+.modal{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.6);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index:99;
+  padding:16px
+}
+.modal.open{display:flex}
+.modal-content{
+  background:white;
+  width:100%;
+  max-width:500px;
+  border-radius:18px;
+  padding:20px
+}
+.pay-opt{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:14px;
+  border:1.5px solid #eee;
+  border-radius:12px;
+  margin:8px 0
+}
+.pay-opt button{
+  background:#000;
+  color:white;
+  border:none;
+  padding:10px 14px;
+  border-radius:8px
+}
+.password-btn{
+  width:100%;
+  padding:14px;
+  margin-top:10px;
+  border:0;
+  border-radius:10px;
+  background:#d32f2f;
+  color:white;
+  font-weight:bold;
+  font-size:16px
+}
+.cancel-btn{
+  width:100%;
+  padding:12px;
+  margin-top:8px;
+  border:1px solid #ddd;
+  border-radius:10px;
+  background:white;
+  font-size:15px
+}
+</style>
+</head>
+
+<body>
+
+<div class="header" id="header">
+  <h2 style="margin:0">
+    🚌 BURKINA TRANSPORT - Réserver
+  </h2>
+  <p style="margin:2px 0 0;font-size:12px;opacity:.9">
+    STAF • TSR • RAKIETA - Paiement direct
+  </p>
+</div>
+
+<div class="card">
+
+  <label>📍 Départ</label>
+  <select id="depart" onchange="calc()">
+    <option value="">Choisis départ</option>
+    <option>Ouagadougou</option>
+    <option>Bobo-Dioulasso</option>
+    <option>Banfora</option>
+    <option>Kaya</option>
+    <option>Bamako</option>
+    <option>Abidjan</option>
+  </select>
+
+  <label>🏁 Arrivée</label>
+  <select id="arrivee" onchange="calc()">
+    <option value="">Choisis arrivée</option>
+    <option>Bobo-Dioulasso</option>
+    <option>Ouagadougou</option>
+    <option>Banfora</option>
+    <option>Abidjan</option>
+    <option>Bamako</option>
+    <option>Lomé</option>
+    <option>Gaoua</option>
+    <option>Dédougou</option>
+    <option>Kaya</option>
+    <option>Dori</option>
+  </select>
+
+  <div class="row">
+    <div>
+      <label>📅 Date</label>
+      <input id="dateVoyage" type="date">
+    </div>
+
+    <div>
+      <label>💺 Places</label>
+      <select id="places" onchange="calc()">
+        <option value="1">1 place</option>
+        <option value="2">2 places</option>
+        <option value="3">3 places</option>
+        <option value="4">4 places</option>
+        <option value="5">5 places</option>
+        <option value="6">6 places</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="total-box" id="totalBox" style="display:none">
+    <div>
+      Prix unitaire :
+      <span id="pu">0</span> FCFA ×
+      <span id="qt">1</span>
+    </div>
+
+    <div>
+      Total :
+      <b id="total">0 FCFA</b>
+    </div>
+
+    <div style="font-size:11px;margin-top:4px"
+         id="detailTrajet"></div>
+  </div>
+
+  <button id="btnContinuer"
+          class="btn-pay"
+          disabled
+          onclick="openPay()">
+    Continuer → Voir Paiement
+  </button>
+
+  <p style="font-size:11px;color:#666;margin-top:8px">
+    ✅ Horaires : RAKIETA Ouaga-Bamako 22H00 DIRECT
+    depuis le 03/09/2026 - TSR Bobo VIP 07H30-23H00 -
+    STAF Nord - Banfora-Bobo 11 départs
+  </p>
+
+</div>
+
+<!-- Fenêtre de mot de passe -->
+
+<div class="modal" id="passwordModal">
+  <div class="modal-content">
+
+    <h3 style="margin-top:0">
+      🔐 Accès protégé
+    </h3>
+
+    <p>
+      Entre le mot de passe pour continuer.
+    </p>
+
+    <input
+      type="password"
+      id="passwordInput"
+      placeholder="Mot de passe"
+      autocomplete="off"
+    >
+
+    <p id="passwordError"
+       style="color:#d32f2f;font-size:13px;display:none">
+      Mot de passe incorrect. Réessaie.
+    </p>
+
+    <button class="password-btn" onclick="verifierMotDePasse()">
+      Valider
+    </button>
+
+    <button class="cancel-btn" onclick="fermerMotDePasse()">
+      Annuler
+    </button>
+
+  </div>
+</div>
+
+<!-- Fenêtre de paiement -->
+
+<div class="modal" id="payModal">
+  <div class="modal-content">
+
+    <div style="display:flex;justify-content:space-between">
+      <h3 style="margin:0">💳 Choisis ton paiement</h3>
+      <span onclick="closePay()"
+            style="font-size:22px;cursor:pointer">✕</span>
+    </div>
+
+    <p>
+      Trajet : <b id="resumeTrajet"></b><br>
+      Total :
+      <b id="resumeTotal" style="color:#d32f2f"></b>
+    </p>
+
+    <div class="pay-opt">
+      <span style="font-size:28px">🟠</span>
+      <div style="flex:1">
+        <b>Orange Money *144#</b>
+      </div>
+      <button onclick="payer('orange')">Payer</button>
+    </div>
+
+    <div class="pay-opt">
+      <span style="font-size:28px">🔵</span>
+      <div style="flex:1">
+        <b>Moov Money *555#</b>
+      </div>
+      <button onclick="payer('moov')">Payer</button>
+    </div>
+
+    <div class="pay-opt">
+      <span style="font-size:28px">🌊</span>
+      <div style="flex:1">
+        <b>Wave</b>
+      </div>
+      <button onclick="payer('wave')">Payer</button>
+    </div>
+
+  </div>
+</div>
+
+<script>
+
+// ==============================
+// CONFIGURATION PRIVÉE
+// ==============================
+
+// Attention : ces valeurs sont des exemples.
+// Remplace-les par tes vrais numéros marchands.
+const NUMERO_ORANGE = "70000000";
+const NUMERO_MOOV = "70000000";
+const LIEN_WAVE = "https://pay.wave.com/";
+
+// Mot de passe demandé après cinq clics.
+const MOT_DE_PASSE = "maman D6";
+
+// ==============================
+// PRIX DES TRAJETS
+// ==============================
+
+const prix = {
+  "Ouagadougou-Bobo-Dioulasso":7500,
+  "Bobo-Dioulasso-Ouagadougou":7500,
+  "Ouagadougou-Banfora":9000,
+  "Banfora-Ouagadougou":9000,
+  "Bobo-Dioulasso-Banfora":2500,
+  "Banfora-Bobo-Dioulasso":2500,
+  "Ouagadougou-Abidjan":18000,
+  "Abidjan-Ouagadougou":18000,
+  "Bobo-Dioulasso-Abidjan":15000,
+  "Ouagadougou-Bamako":20000,
+  "Bamako-Ouagadougou":20000,
+  "Bobo-Dioulasso-Bamako":12000,
+  "Ouagadougou-Lomé":18000,
+  "Ouagadougou-Gaoua":8500,
+  "Ouagadougou-Dédougou":5000,
+  "Ouagadougou-Kaya":3500,
+  "Ouagadougou-Dori":7000
+};
+
+function getPrix(d, a) {
+  const cle = d + "-" + a;
+
+  if (prix[cle] !== undefined) {
+    return prix[cle];
+  }
+
+  const cleInverse = a + "-" + d;
+
+  if (prix[cleInverse] !== undefined) {
+    return prix[cleInverse];
+  }
+
+  return 7500;
+}
+
+// ==============================
+// CALCUL DU PRIX
+// ==============================
+
+function calc() {
+  const d = document.getElementById("depart").value;
+  const a = document.getElementById("arrivee").value;
+  const q = parseInt(document.getElementById("places").value);
+
+  const bouton = document.getElementById("btnContinuer");
+  const totalBox = document.getElementById("totalBox");
+
+  if (!d || !a || d === a) {
+    totalBox.style.display = "none";
+    bouton.disabled = true;
+    return;
+  }
+
+  const pu = getPrix(d, a);
+  const total = pu * q;
+
+  document.getElementById("pu").textContent =
+    pu.toLocaleString("fr-FR");
+
+  document.getElementById("qt").textContent = q;
+
+  document.getElementById("total").textContent =
+    total.toLocaleString("fr-FR") + " FCFA";
+
+  document.getElementById("detailTrajet").textContent =
+    d + " → " + a + " le " +
+    document.getElementById("dateVoyage").value;
+
+  totalBox.style.display = "block";
+  bouton.disabled = false;
+}
+
+// Recalculer lorsque la date change.
+document.getElementById("dateVoyage").addEventListener("change", calc);
+
+// ==============================
+// ACCÈS PAR CINQ CLICS
+// ==============================
+
+let clicks = 0;
+let dernierClic = 0;
+
+document.getElementById("header").addEventListener("click", function() {
+  const maintenant = Date.now();
+
+  // Recommencer si les clics sont trop espacés.
+  if (maintenant - dernierClic > 3000) {
+    clicks = 0;
+  }
+
+  dernierClic = maintenant;
+  clicks++;
+
+  if (clicks >= 5) {
+    clicks = 0;
+    ouvrirMotDePasse();
+  }
+});
+
+function ouvrirMotDePasse() {
+  document.getElementById("passwordInput").value = "";
+  document.getElementById("passwordError").style.display = "none";
+  document.getElementById("passwordModal").classList.add("open");
+
+  setTimeout(function() {
+    document.getElementById("passwordInput").focus();
+  }, 100);
+}
+
+function fermerMotDePasse() {
+  document.getElementById("passwordModal").classList.remove("open");
+}
+
+function verifierMotDePasse() {
+  const saisie = document.getElementById("passwordInput").value;
+
+  if (saisie === MOT_DE_PASSE) {
+    fermerMotDePasse();
+
+    alert("Mot de passe correct. Accès autorisé.");
+  } else {
+    document.getElementById("passwordError").style.display = "block";
+    document.getElementById("passwordInput").value = "";
+    document.getElementById("passwordInput").focus();
+  }
+}
+
+// Valider également avec la touche Entrée.
+document.getElementById("passwordInput").addEventListener("keydown", function(e) {
+  if (e.key === "Enter") {
+    verifierMotDePasse();
+  }
+});
+
+// ==============================
+// PAIEMENT
+// ==============================
+
+function openPay() {
+  const d = document.getElementById("depart").value;
+  const a = document.getElementById("arrivee").value;
+  const date = document.getElementById("dateVoyage").value;
+
+  if (!d || !a || d === a || !date) {
+    alert("Vérifie le départ, l'arrivée et la date du voyage.");
+    return;
+  }
+
+  if (date < new Date().toISOString().slice(0, 10)) {
+    alert("Choisis une date de voyage valide.");
+    return;
+  }
+
+  document.getElementById("resumeTrajet").textContent =
+    d + " → " + a + " - " +
+    document.getElementById("places").value +
+    " place(s) - " + date;
+
+  document.getElementById("resumeTotal").textContent =
+    document.getElementById("total").textContent;
+
+  document.getElementById("payModal").classList.add("open");
+}
+
+function closePay() {
+  document.getElementById("payModal").classList.remove("open");
+}
+
+function payer(type) {
+  const texteTotal = document.getElementById("total").textContent;
+  const total = texteTotal.replace(/\D/g, "");
+
+  if (type === "orange") {
+    window.location.href =
+      "tel:*144*2*1*" + NUMERO_ORANGE + "*" + total + "%23";
+  }
+
+  if (type === "moov") {
+    window.location.href =
+      "tel:*555*2*1*" + NUMERO_MOOV + "*" + total + "%23";
+  }
+
+  if (type === "wave") {
+    window.open(LIEN_WAVE, "_blank");
+  }
+}
+
+// ==============================
+// INITIALISATION
+// ==============================
+
+document.getElementById("dateVoyage").value =
+  new Date().toISOString().slice(0, 10);
+
+</script>
+
+</body>
+  </html>
